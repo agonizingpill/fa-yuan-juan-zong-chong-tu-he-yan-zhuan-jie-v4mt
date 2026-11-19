@@ -2,7 +2,7 @@ from datetime import datetime,timezone
 from sqlalchemy import Integer,String,Float,ForeignKey,UniqueConstraint,CheckConstraint,JSON,DateTime,Boolean,Text
 from sqlalchemy.orm import Mapped,mapped_column
 from .database import Base
-from .constants import IntakeState,ReferralState
+from .constants import IntakeState,ReferralState,AuditBatchState
 def now():return datetime.now(timezone.utc)
 class User(Base):
     __tablename__='users'
@@ -110,6 +110,42 @@ class Closure(Base):
     followup:Mapped[str]=mapped_column(String(200))
     total_minutes:Mapped[int]=mapped_column(Integer)
     at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now)
+class AuditBatch(Base):
+    __tablename__='audit_batches'
+    id:Mapped[int]=mapped_column(primary_key=True)
+    seed:Mapped[int]=mapped_column(Integer)
+    status:Mapped[str]=mapped_column(String(20),default=AuditBatchState.open.value)
+    created_by:Mapped[str]=mapped_column(String(40))
+    created_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now)
+    sealed_at:Mapped[datetime|None]=mapped_column(DateTime(timezone=True),nullable=True)
+    rate_low:Mapped[float|None]=mapped_column(Float,nullable=True)
+    rate_high:Mapped[float|None]=mapped_column(Float,nullable=True)
+class AuditStratum(Base):
+    __tablename__='audit_strata'
+    __table_args__=(UniqueConstraint('batch_id','topic','tier'),)
+    id:Mapped[int]=mapped_column(primary_key=True)
+    batch_id:Mapped[int]=mapped_column(ForeignKey('audit_batches.id'))
+    topic:Mapped[str]=mapped_column(String(20))
+    tier:Mapped[str]=mapped_column(String(10))
+    population:Mapped[int]=mapped_column(Integer)
+    sample_size:Mapped[int]=mapped_column(Integer)
+class AuditSample(Base):
+    __tablename__='audit_samples'
+    __table_args__=(UniqueConstraint('batch_id','intake_id'),)
+    id:Mapped[int]=mapped_column(primary_key=True)
+    batch_id:Mapped[int]=mapped_column(ForeignKey('audit_batches.id'))
+    intake_id:Mapped[int]=mapped_column(ForeignKey('intakes.id'))
+    topic:Mapped[str]=mapped_column(String(20))
+    tier:Mapped[str]=mapped_column(String(10))
+    recommended:Mapped[str]=mapped_column(String(20))
+    confidence:Mapped[float]=mapped_column(Float)
+    facts_version:Mapped[int]=mapped_column(Integer)
+    facts_snapshot:Mapped[str]=mapped_column(Text)
+    determined:Mapped[str|None]=mapped_column(String(20),nullable=True)
+    determined_by:Mapped[str|None]=mapped_column(String(40),nullable=True)
+    determined_at:Mapped[datetime|None]=mapped_column(DateTime(timezone=True),nullable=True)
+    attempts:Mapped[int]=mapped_column(Integer,default=0)
+    missing:Mapped[bool]=mapped_column(Boolean,default=False)
 class Audit(Base):
     __tablename__='audit'
     id:Mapped[int]=mapped_column(primary_key=True)

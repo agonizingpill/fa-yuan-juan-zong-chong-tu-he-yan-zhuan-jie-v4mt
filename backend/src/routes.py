@@ -6,7 +6,7 @@ from .models import *
 from .schemas import *
 from .auth import current,editor,supervisor,issue,password_hash
 from .common import dump
-from . import intake_service as intake,conflict_service as conflict,triage_service as triage,document_service as document,referral_service as referral,closure_service as closure
+from . import intake_service as intake,conflict_service as conflict,triage_service as triage,document_service as document,referral_service as referral,closure_service as closure,audit_service as audit
 router=APIRouter()
 @router.post('/auth/login')
 def login(data:Login,db=Depends(session)):
@@ -46,5 +46,15 @@ def withdraw(id:int,data:WithdrawInput,db=Depends(session),user=Depends(supervis
 def service(data:ServiceInput,db=Depends(session),user=Depends(editor)):return closure.log_service(db,data,user)
 @router.post('/closures')
 def close(data:ClosureInput,db=Depends(session),user=Depends(supervisor)):return closure.close(db,data,user)
+@router.get('/audit-batches')
+def batches(db=Depends(session),user=Depends(current)):return audit.list_batches(db)
+@router.get('/audit-batches/{id}')
+def batch(id:int,db=Depends(session),user=Depends(current)):return audit.detail(db,id)
+@router.post('/audit-batches')
+def draw(data:AuditBatchInput,db=Depends(session),user=Depends(supervisor)):return audit.create(db,data,user)
+@router.post('/audit-samples/{id}/determine')
+def determine(id:int,data:DetermineInput,db=Depends(session),user=Depends(supervisor)):return audit.determine(db,id,data,user)
+@router.post('/audit-batches/{id}/seal')
+def seal(id:int,db=Depends(session),user=Depends(supervisor)):return audit.seal(db,id,user)
 @router.get('/audit')
 def audits(db=Depends(session),user=Depends(supervisor)):return [dump(v) for v in db.scalars(select(Audit).order_by(Audit.id.desc()).limit(100))]

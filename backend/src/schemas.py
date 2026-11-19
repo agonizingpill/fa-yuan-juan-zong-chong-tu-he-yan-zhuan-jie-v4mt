@@ -50,3 +50,8 @@ class ClosureInput(BaseModel):
     intake_id:int
     satisfaction:int=Field(ge=1,le=5)
     followup:str=Field(min_length=4,max_length=200)
+class AuditBatchInput(BaseModel):
+    sample_size:int=Field(ge=1,le=200)
+    seed:int|None=Field(default=None,ge=0)
+class DetermineInput(BaseModel):
+    topic:str=Field(pattern='^(labor|housing|consumer)$')

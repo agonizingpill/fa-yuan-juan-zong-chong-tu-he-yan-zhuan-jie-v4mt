@@ -17,3 +17,6 @@ class ReferralState(StrEnum):
     accepted='accepted'
     withdrawn='withdrawn'
     completed='completed'
+class AuditBatchState(StrEnum):
+    open='open'
+    sealed='sealed'
